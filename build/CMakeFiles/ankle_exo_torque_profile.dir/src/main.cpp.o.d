@@ -135,25 +135,17 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /usr/include/aarch64-linux-gnu/bits/types/struct_sigstack.h \
  /usr/include/aarch64-linux-gnu/bits/sigthread.h \
  /usr/include/aarch64-linux-gnu/bits/signal_ext.h \
- /usr/include/c++/12/cstdint /usr/include/c++/12/cstdio \
- /usr/include/stdio.h /usr/lib/gcc/aarch64-linux-gnu/12/include/stdarg.h \
- /usr/include/aarch64-linux-gnu/bits/types/__fpos_t.h \
- /usr/include/aarch64-linux-gnu/bits/types/__mbstate_t.h \
- /usr/include/aarch64-linux-gnu/bits/types/__fpos64_t.h \
- /usr/include/aarch64-linux-gnu/bits/types/__FILE.h \
- /usr/include/aarch64-linux-gnu/bits/types/FILE.h \
- /usr/include/aarch64-linux-gnu/bits/types/struct_FILE.h \
- /usr/include/aarch64-linux-gnu/bits/types/cookie_io_functions_t.h \
- /usr/include/aarch64-linux-gnu/bits/stdio_lim.h \
- /usr/include/aarch64-linux-gnu/bits/stdio.h /usr/include/c++/12/cstdlib \
- /usr/include/c++/12/cstring /usr/include/string.h /usr/include/strings.h \
- /usr/include/c++/12/fstream /usr/include/c++/12/istream \
- /usr/include/c++/12/ios /usr/include/c++/12/iosfwd \
- /usr/include/c++/12/bits/stringfwd.h \
+ /usr/include/c++/12/cstdint /usr/include/c++/12/fstream \
+ /usr/include/c++/12/istream /usr/include/c++/12/ios \
+ /usr/include/c++/12/iosfwd /usr/include/c++/12/bits/stringfwd.h \
  /usr/include/c++/12/bits/memoryfwd.h /usr/include/c++/12/bits/postypes.h \
  /usr/include/c++/12/cwchar /usr/include/wchar.h \
+ /usr/lib/gcc/aarch64-linux-gnu/12/include/stdarg.h \
  /usr/include/aarch64-linux-gnu/bits/types/wint_t.h \
  /usr/include/aarch64-linux-gnu/bits/types/mbstate_t.h \
+ /usr/include/aarch64-linux-gnu/bits/types/__mbstate_t.h \
+ /usr/include/aarch64-linux-gnu/bits/types/__FILE.h \
+ /usr/include/aarch64-linux-gnu/bits/types/FILE.h \
  /usr/include/c++/12/exception /usr/include/c++/12/bits/exception.h \
  /usr/include/c++/12/bits/exception_ptr.h \
  /usr/include/c++/12/bits/cxxabi_init_exception.h \
@@ -198,7 +190,14 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /usr/include/c++/12/bits/stl_construct.h /usr/include/c++/12/string_view \
  /usr/include/c++/12/bits/functional_hash.h \
  /usr/include/c++/12/bits/string_view.tcc \
- /usr/include/c++/12/ext/string_conversions.h /usr/include/c++/12/cerrno \
+ /usr/include/c++/12/ext/string_conversions.h /usr/include/c++/12/cstdlib \
+ /usr/include/c++/12/cstdio /usr/include/stdio.h \
+ /usr/include/aarch64-linux-gnu/bits/types/__fpos_t.h \
+ /usr/include/aarch64-linux-gnu/bits/types/__fpos64_t.h \
+ /usr/include/aarch64-linux-gnu/bits/types/struct_FILE.h \
+ /usr/include/aarch64-linux-gnu/bits/types/cookie_io_functions_t.h \
+ /usr/include/aarch64-linux-gnu/bits/stdio_lim.h \
+ /usr/include/aarch64-linux-gnu/bits/stdio.h /usr/include/c++/12/cerrno \
  /usr/include/errno.h /usr/include/aarch64-linux-gnu/bits/errno.h \
  /usr/include/linux/errno.h /usr/lib/linux/uapi/arm64/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
@@ -243,7 +242,8 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /usr/include/aarch64-linux-gnu/bits/mman-linux.h \
  /usr/include/aarch64-linux-gnu/bits/mman-shared.h \
  /usr/include/aarch64-linux-gnu/bits/mman_ext.h \
- /home/ankleexo/ads1115/src/driver_ads1115.h \
+ /home/ankleexo/ads1115/src/driver_ads1115.h /usr/include/string.h \
+ /usr/include/strings.h \
  /home/ankleexo/ads1115/interface/driver_ads1115_interface.h \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/serialPort/SerialPort.h \
  /usr/include/termios.h /usr/include/aarch64-linux-gnu/bits/termios.h \
@@ -271,6 +271,7 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /usr/include/linux/serial.h /usr/include/linux/const.h \
  /usr/include/linux/tty_flags.h \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/serialPort/include/errorClass.h \
+ /usr/include/c++/12/cstring \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/unitreeMotor.h \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/include/motor_msg_GO-M8010-6.h \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/include/motor_msg_A1B1.h \
