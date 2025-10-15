@@ -220,7 +220,8 @@ void producer_rt(const RtArgs& A){
         was_in_contact=in_contact;
 
         double t_since_hs=sec_from(t0,now)-sec_from(t0,last_hs_time);
-        gait_phase=fmod(t_since_hs/default_stride,1.0);
+        gait_phase= t_since_hs/default_stride;
+        if(gait_phase>=1.0) gait_phase = 1.0;
         if(gait_phase<0) gait_phase=0;
 
         // ---- desired torque profile τ_des(gait_phase) ----
@@ -255,15 +256,19 @@ void producer_rt(const RtArgs& A){
         double dq_act_deg_s=((data.dq-dq0)/GR)*rad2deg;
 
         // ---- UDP packet (8 floats) ----
-        float pkt[8];
-        pkt[0]=float(t_sched);
-        pkt[1]=float(t_actual);
-        pkt[2]=float(jitter);
-        pkt[3]=float(tau_des);
-        pkt[4]=float(q_act_deg);
-        pkt[5]=float(dq_act_deg_s);
-        pkt[6]=ads_v;
-        pkt[7]=float(gait_phase);
+        float pkt[11];
+        pkt[0] = float(t_sched);
+        pkt[1] = float(t_actual);
+        pkt[2] = float(jitter);
+        pkt[3] = float(tau_des);
+        pkt[4] = float(q_act_deg);
+        pkt[5] = float(dq_act_deg_s);
+        pkt[6] = ads_v;
+        pkt[7] = float(gait_phase);
+        pkt[8] = float(rise_time);
+        pkt[9] = float(peak_time);
+        pkt[10] = float(fall_time);
+
         sendto(A.udp_sock,pkt,sizeof(pkt),0,(sockaddr*)&A.udp_addr,sizeof(A.udp_addr));
 
         // ---- log ----
