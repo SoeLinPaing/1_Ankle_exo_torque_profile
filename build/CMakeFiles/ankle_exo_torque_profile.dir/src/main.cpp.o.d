@@ -241,7 +241,21 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /usr/include/aarch64-linux-gnu/bits/mman-map-flags-generic.h \
  /usr/include/aarch64-linux-gnu/bits/mman-linux.h \
  /usr/include/aarch64-linux-gnu/bits/mman-shared.h \
- /usr/include/aarch64-linux-gnu/bits/mman_ext.h \
+ /usr/include/aarch64-linux-gnu/bits/mman_ext.h /usr/include/arpa/inet.h \
+ /usr/include/netinet/in.h /usr/include/aarch64-linux-gnu/sys/socket.h \
+ /usr/include/aarch64-linux-gnu/bits/types/struct_iovec.h \
+ /usr/include/aarch64-linux-gnu/bits/socket.h \
+ /usr/include/aarch64-linux-gnu/bits/socket_type.h \
+ /usr/include/aarch64-linux-gnu/bits/sockaddr.h \
+ /usr/lib/linux/uapi/arm64/asm/socket.h /usr/include/asm-generic/socket.h \
+ /usr/lib/linux/uapi/arm64/asm/sockios.h \
+ /usr/include/asm-generic/sockios.h \
+ /usr/include/aarch64-linux-gnu/bits/types/struct_osockaddr.h \
+ /usr/include/aarch64-linux-gnu/bits/in.h /usr/include/c++/12/vector \
+ /usr/include/c++/12/bits/stl_uninitialized.h \
+ /usr/include/c++/12/bits/stl_vector.h \
+ /usr/include/c++/12/bits/stl_bvector.h \
+ /usr/include/c++/12/bits/vector.tcc \
  /home/ankleexo/ads1115/src/driver_ads1115.h /usr/include/string.h \
  /usr/include/strings.h \
  /home/ankleexo/ads1115/interface/driver_ads1115_interface.h \
@@ -259,7 +273,6 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /usr/include/aarch64-linux-gnu/sys/ttydefaults.h /usr/include/fcntl.h \
  /usr/include/aarch64-linux-gnu/bits/fcntl.h \
  /usr/include/aarch64-linux-gnu/bits/fcntl-linux.h \
- /usr/include/aarch64-linux-gnu/bits/types/struct_iovec.h \
  /usr/include/linux/falloc.h /usr/include/aarch64-linux-gnu/bits/stat.h \
  /usr/include/aarch64-linux-gnu/bits/struct_stat.h \
  /usr/include/aarch64-linux-gnu/sys/ioctl.h \
@@ -275,8 +288,4 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/unitreeMotor.h \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/include/motor_msg_GO-M8010-6.h \
  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/include/motor_msg_A1B1.h \
- /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/IOPort/IOPort.h \
- /usr/include/c++/12/vector /usr/include/c++/12/bits/stl_uninitialized.h \
- /usr/include/c++/12/bits/stl_vector.h \
- /usr/include/c++/12/bits/stl_bvector.h \
- /usr/include/c++/12/bits/vector.tcc
+ /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/IOPort/IOPort.h

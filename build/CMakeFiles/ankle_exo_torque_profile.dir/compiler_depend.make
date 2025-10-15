@@ -510,6 +510,24 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
   /usr/include/aarch64-linux-gnu/bits/mman-linux.h \
   /usr/include/aarch64-linux-gnu/bits/mman-shared.h \
   /usr/include/aarch64-linux-gnu/bits/mman_ext.h \
+  /usr/include/arpa/inet.h \
+  /usr/include/netinet/in.h \
+  /usr/include/aarch64-linux-gnu/sys/socket.h \
+  /usr/include/aarch64-linux-gnu/bits/types/struct_iovec.h \
+  /usr/include/aarch64-linux-gnu/bits/socket.h \
+  /usr/include/aarch64-linux-gnu/bits/socket_type.h \
+  /usr/include/aarch64-linux-gnu/bits/sockaddr.h \
+  /usr/lib/linux/uapi/arm64/asm/socket.h \
+  /usr/include/asm-generic/socket.h \
+  /usr/lib/linux/uapi/arm64/asm/sockios.h \
+  /usr/include/asm-generic/sockios.h \
+  /usr/include/aarch64-linux-gnu/bits/types/struct_osockaddr.h \
+  /usr/include/aarch64-linux-gnu/bits/in.h \
+  /usr/include/c++/12/vector \
+  /usr/include/c++/12/bits/stl_uninitialized.h \
+  /usr/include/c++/12/bits/stl_vector.h \
+  /usr/include/c++/12/bits/stl_bvector.h \
+  /usr/include/c++/12/bits/vector.tcc \
   /home/ankleexo/ads1115/src/driver_ads1115.h \
   /usr/include/string.h \
   /usr/include/strings.h \
@@ -530,7 +548,6 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
   /usr/include/fcntl.h \
   /usr/include/aarch64-linux-gnu/bits/fcntl.h \
   /usr/include/aarch64-linux-gnu/bits/fcntl-linux.h \
-  /usr/include/aarch64-linux-gnu/bits/types/struct_iovec.h \
   /usr/include/linux/falloc.h \
   /usr/include/aarch64-linux-gnu/bits/stat.h \
   /usr/include/aarch64-linux-gnu/bits/struct_stat.h \
@@ -550,17 +567,8 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
   /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/unitreeMotor.h \
   /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/include/motor_msg_GO-M8010-6.h \
   /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/unitreeMotor/include/motor_msg_A1B1.h \
-  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/IOPort/IOPort.h \
-  /usr/include/c++/12/vector \
-  /usr/include/c++/12/bits/stl_uninitialized.h \
-  /usr/include/c++/12/bits/stl_vector.h \
-  /usr/include/c++/12/bits/stl_bvector.h \
-  /usr/include/c++/12/bits/vector.tcc
+  /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/IOPort/IOPort.h
 
-
-/usr/include/c++/12/bits/stl_bvector.h:
-
-/usr/include/c++/12/vector:
 
 /home/ankleexo/Desktop/Ankle_Exo/1_Ankle_exo_torque_profile/include/IOPort/IOPort.h:
 
@@ -585,6 +593,28 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
 /usr/include/aarch64-linux-gnu/bits/termios-c_oflag.h:
 
 /usr/include/aarch64-linux-gnu/bits/termios-struct.h:
+
+/usr/include/c++/12/bits/stl_bvector.h:
+
+/usr/include/c++/12/vector:
+
+/usr/include/aarch64-linux-gnu/bits/types/struct_osockaddr.h:
+
+/usr/include/asm-generic/sockios.h:
+
+/usr/lib/linux/uapi/arm64/asm/sockios.h:
+
+/usr/include/asm-generic/socket.h:
+
+/usr/lib/linux/uapi/arm64/asm/socket.h:
+
+/usr/include/aarch64-linux-gnu/bits/sockaddr.h:
+
+/usr/include/aarch64-linux-gnu/bits/socket.h:
+
+/usr/include/aarch64-linux-gnu/sys/socket.h:
+
+/usr/include/netinet/in.h:
 
 /usr/include/aarch64-linux-gnu/bits/mman-linux.h:
 
@@ -892,6 +922,8 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
 
 /home/ankleexo/ads1115/project/raspberrypi4b/driver/src/raspberrypi4b_driver_ads1115_interface.c:
 
+/usr/include/aarch64-linux-gnu/bits/in.h:
+
 /usr/include/c++/12/fstream:
 
 /usr/include/aarch64-linux-gnu/bits/math-vector.h:
@@ -907,6 +939,8 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
 /usr/lib/linux/uapi/arm64/asm/sve_context.h:
 
 /usr/include/features-time64.h:
+
+/usr/include/arpa/inet.h:
 
 /usr/include/c++/12/bits/atomic_base.h:
 
@@ -1007,6 +1041,8 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
 /usr/include/c++/12/tr1/riemann_zeta.tcc:
 
 /usr/include/linux/close_range.h:
+
+/usr/include/aarch64-linux-gnu/bits/socket_type.h:
 
 /usr/include/c++/12/bits/stringfwd.h:
 
@@ -1246,8 +1282,8 @@ CMakeFiles/ankle_exo_torque_profile.dir/src/main.cpp.o: /home/ankleexo/Desktop/A
 
 /usr/include/c++/12/ext/alloc_traits.h:
 
-/usr/include/c++/12/bits/vector.tcc:
-
 /usr/include/aarch64-linux-gnu/bits/termios.h:
+
+/usr/include/c++/12/bits/vector.tcc:
 
 /usr/include/c++/12/ext/string_conversions.h:
