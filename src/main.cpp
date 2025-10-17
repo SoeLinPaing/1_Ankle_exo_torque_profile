@@ -1,6 +1,7 @@
 // ============================================================================
 // ankle_exo_torque_profile - RT 500 Hz motor loop + ADS1115 continuous read +
 // UDP telemetry + Gait Phase Detection + Half-Cosine Torque Profile
+// + Stride Time Transmission (last 5 strides)
 //
 // Build:
 //   g++ -O2 -pthread main.cpp -o ankle_exo_torque_profile \
@@ -10,9 +11,6 @@
 // Run (sudo for RT priority):
 //   sudo ./ankle_exo_torque_profile /dev/ttyUSB0
 //
-// UDP output (8 floats) → Mac 10.152.17.231:5005:
-//   {t_sched_sec, t_actual_sec, jitter_ns, tau_des_Nm,
-//    q_act_deg, dq_act_deg_s, ads_voltage, gait_phase}
 // ============================================================================
 
 #include <atomic>
@@ -141,7 +139,7 @@ void ads_thread_func(AdsCtx ctx){
 }
 
 // ------------------------------------------------------------
-// Real-time motor control + UDP telemetry + gait phase
+// Real-time control loop
 // ------------------------------------------------------------
 struct RtArgs{
     SerialPort* serial;
@@ -166,26 +164,29 @@ void producer_rt(const RtArgs& A){
     MotorCmd cmd{}; MotorData data{};
     cmd.motorType=A.mtype; data.motorType=A.mtype; cmd.id=A.motor_id;
     const uint8_t mode_foc=queryMotorMode(A.mtype,MotorMode::FOC);
+    const uint8_t mode_brake=queryMotorMode(A.mtype,MotorMode::BRAKE);
 
     timespec t0; clock_gettime(CLOCK_MONOTONIC,&t0);
     timespec next=nsec_add(t0,period_ns);
     uint64_t seq=0;
 
-    // ---- zero offsets ----
+    // zero offsets
     bool zero_initialized=false;
     double q0=0.0,dq0=0.0;
 
-    // ---- gait phase detection ----
-    double fsr_thresh=2.0;       // V threshold for heel strike
+    // gait phase detection
+    double fsr_thresh=2.0;
     bool was_in_contact=false;
     timespec last_hs_time=t0;
     double default_stride=1.0;
     std::vector<double> prev_strides;
     double gait_phase=0.0;
+    bool phase_started=false;
+    bool first_strike_detected=false;
 
-    // ---- half-cosine torque profile parameters ----
-    const double peak_torque=5.0;  // Nm
-    const double peak_time=0.8;    // normalized
+    // torque profile
+    const double peak_torque=5.0;
+    const double peak_time=0.8;
     const double rise_time=0.7;
     const double fall_time=0.10;
     const double phi_start=rise_time;
@@ -198,80 +199,85 @@ void producer_rt(const RtArgs& A){
         double t_sched=(seq+1)*period_s;
         double t_actual=sec_from(t0,now);
         int64_t jitter=nsec_diff(now,nsec_add(t0,int64_t((seq+1)*period_ns)));
-
         float ads_v=g_latest_voltage.load(std::memory_order_relaxed);
 
-        // ---- Heel-strike detection ----
+        // heel-strike detection
         bool in_contact=(ads_v>fsr_thresh);
         if(in_contact && !was_in_contact){
             double t_now=sec_from(t0,now);
-            double stride_time=t_now-sec_from(t0,last_hs_time);
-            last_hs_time=now;
 
-            if(stride_time>0.3 && stride_time<2.0){
-                prev_strides.push_back(stride_time);
-                if(prev_strides.size()>5) prev_strides.erase(prev_strides.begin());
-            }
-            if(!prev_strides.empty()){
-                double sum=0.0; for(double s:prev_strides) sum+=s;
-                default_stride=sum/prev_strides.size();
+            if(!first_strike_detected){
+                first_strike_detected = true;
+                phase_started = true;
+                last_hs_time = now;
+                std::cout << "First heel strike detected — gait phase tracking started.\n";
+            } else {
+                double stride_time = t_now - sec_from(t0,last_hs_time);
+                last_hs_time = now;
+                if(stride_time>0.3 && stride_time<2.0){
+                    prev_strides.push_back(stride_time);
+                    if(prev_strides.size()>5) prev_strides.erase(prev_strides.begin());
+                    double avg=0.0; for(double s:prev_strides) avg+=s; avg/=prev_strides.size();
+                    default_stride=avg;
+                    std::cout<<"Stride detected: "<<stride_time<<" s (avg="<<avg<<")\n";
+                }
             }
         }
         was_in_contact=in_contact;
 
-        double t_since_hs=sec_from(t0,now)-sec_from(t0,last_hs_time);
-        gait_phase= t_since_hs/default_stride;
-        if(gait_phase>=1.0) gait_phase = 1.0;
-        if(gait_phase<0) gait_phase=0;
+        // gait phase calculation (starts after first heel-strike)
+        if(phase_started){
+            double t_since_hs=sec_from(t0,now)-sec_from(t0,last_hs_time);
+            gait_phase=t_since_hs/default_stride;
+            if(gait_phase < 0.0) gait_phase = 0.0;
+            if(gait_phase > 1.0) gait_phase = 1.0;
+        } else {
+            gait_phase = 0.0;
+        }
 
-        // ---- desired torque profile τ_des(gait_phase) ----
-        double tau_des=0.0;
-        double phi=gait_phase;
-
+        // desired torque
+        double tau_des=0.0, phi=gait_phase;
         if(phi>=phi_start && phi<peak_time){
-            double phase=(phi-phi_start)/(peak_time-rise_time);
-            tau_des=peak_torque*0.5*(1.0-std::cos(M_PI*phase));
-        }
-        else if(phi>=peak_time && phi<=phi_end){
-            double phase=(phi-peak_time)/fall_time;
-            tau_des=peak_torque*0.5*(1.0+std::cos(M_PI*phase));
+            double ph=(phi-phi_start)/(peak_time-rise_time);
+            tau_des=peak_torque*0.5*(1.0-std::cos(M_PI*ph));
+        } else if(phi>=peak_time && phi<=phi_end){
+            double ph=(phi-peak_time)/fall_time;
+            tau_des=peak_torque*0.5*(1.0+std::cos(M_PI*ph));
         }
 
-        // ---- motor command ----
+        // send torque
         cmd.mode=mode_foc;
-        cmd.kp=0.0; cmd.kd=0.0;
-        cmd.q=0.0; cmd.dq=0.0;
-        cmd.tau=-tau_des/GR;  // convert Nm → motor torque
-
+        cmd.kp=cmd.kd=0.0; cmd.q=0.0; cmd.dq=0.0;
+        cmd.tau=-tau_des/GR;
         A.serial->sendRecv(&cmd,&data);
 
-        // ---- initialize zero offset ----
         if(!zero_initialized && std::abs(data.q)>1e-6){
-            q0=data.q; dq0=data.dq;
-            zero_initialized=true;
+            q0=data.q; dq0=data.dq; zero_initialized=true;
             std::cout<<"Motor zero offsets set: q0="<<q0<<", dq0="<<dq0<<"\n";
         }
 
         double q_act_deg=((data.q-q0)/GR)*rad2deg;
         double dq_act_deg_s=((data.dq-dq0)/GR)*rad2deg;
 
-        // ---- UDP packet (8 floats) ----
-        float pkt[11];
-        pkt[0] = float(t_sched);
-        pkt[1] = float(t_actual);
-        pkt[2] = float(jitter);
-        pkt[3] = float(tau_des);
-        pkt[4] = float(q_act_deg);
-        pkt[5] = float(dq_act_deg_s);
-        pkt[6] = ads_v;
-        pkt[7] = float(gait_phase);
-        pkt[8] = float(rise_time);
-        pkt[9] = float(peak_time);
-        pkt[10] = float(fall_time);
+        // --- UDP packet (16 floats) ---
+        float pkt[16]={0};
+        pkt[0]=float(t_sched);
+        pkt[1]=float(t_actual);
+        pkt[2]=float(jitter);
+        pkt[3]=float(tau_des);
+        pkt[4]=float(q_act_deg);
+        pkt[5]=float(dq_act_deg_s);
+        pkt[6]=ads_v;
+        pkt[7]=float(gait_phase);
+        pkt[8]=float(rise_time);
+        pkt[9]=float(peak_time);
+        pkt[10]=float(fall_time);
+        for (size_t i = 0; i < 5; ++i)
+            pkt[11+i] = (i < prev_strides.size() ? float(prev_strides[i]) : 0.0f);
 
         sendto(A.udp_sock,pkt,sizeof(pkt),0,(sockaddr*)&A.udp_addr,sizeof(A.udp_addr));
 
-        // ---- log ----
+        // log
         SPSC<RING_SIZE>::Telemetry s{
             seq+1,t_sched,t_actual,jitter,
             0.0,0.0,tau_des,
@@ -284,9 +290,8 @@ void producer_rt(const RtArgs& A){
         ++seq;
     }
 
-    // ---- stop motor ----
-    cmd.mode=queryMotorMode(A.mtype,MotorMode::BRAKE);
-    cmd.kp=cmd.kd=cmd.q=cmd.dq=cmd.tau=0.0;
+    // brake on stop
+    cmd.mode=mode_brake; cmd.kp=cmd.kd=cmd.q=cmd.dq=cmd.tau=0.0;
     A.serial->sendRecv(&cmd,&data);
 }
 
@@ -296,7 +301,7 @@ int main(int argc,char**argv){
     const char* csv=(argc>=3)?argv[2]:"motor_ads_log.csv";
     std::signal(SIGINT,on_sigint);
 
-    // ---- ADS1115 init ----
+    // ADS1115 init
     ads1115_handle_t ads;
     ads.debug_print=ads1115_interface_debug_print;
     ads.delay_ms=ads1115_interface_delay_ms;
@@ -304,7 +309,6 @@ int main(int argc,char**argv){
     ads.iic_deinit=ads1115_interface_iic_deinit;
     ads.iic_read=ads1115_interface_iic_read;
     ads.iic_write=ads1115_interface_iic_write;
-
     if(ads.iic_init()!=0){std::cerr<<"I2C init failed\n";return -1;}
     if(ads1115_init(&ads)!=0){std::cerr<<"ADS1115 init failed\n";return -1;}
     ads1115_set_addr_pin(&ads,ADS1115_ADDR_GND);
@@ -315,7 +319,7 @@ int main(int argc,char**argv){
     ads1115_start_continuous_read(&ads);
     std::cout<<"ADS1115 continuous mode started.\n";
 
-    // ---- UDP setup ----
+    // UDP setup
     int sock=socket(AF_INET,SOCK_DGRAM,0);
     sockaddr_in addr{};
     addr.sin_family=AF_INET;
@@ -323,7 +327,6 @@ int main(int argc,char**argv){
     inet_pton(AF_INET,"10.152.17.231",&addr.sin_addr);
     std::cout<<"UDP target: 10.152.17.231:5005\n";
 
-    // ---- Motor serial ----
     SerialPort serial(dev);
 
     std::thread logger(logger_thread_func,csv);
