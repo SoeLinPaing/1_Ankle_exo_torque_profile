@@ -2,21 +2,7 @@
 // ankle_exo_torque_profile - RT 500 Hz motor loop + ADS1115 continuous read +
 // UDP telemetry + Gait Phase Detection + Half-Cosine Torque Profile
 // + Stride Time Transmission (last 5 strides) + UDP Motor Enable/Disable
-//
-// Build:
-//   g++ -O2 -pthread main.cpp -o ankle_exo_torque_profile \
-//       -I./serialPort -I./unitreeMotor -I./ads1115 \
-//       -L. -lUnitreeMotorSDK_Arm64 -lserialPort -lads1115
-//
-// Run (sudo for RT priority):
-//   sudo ./ankle_exo_torque_profile /dev/ttyUSB0
-//
-// UDP Output (→ Mac 10.152.17.231:5005):
-//   {t_sched, t_actual, jitter, tau_des, q, dq, adsV, gait_phase,
-//    rise, peak, fall, stride1..stride5}
-//
-// UDP Input (port 5006, from Mac):
-//   "ENABLE" or "DISABLE"
+// + Parameter Updates from GUI (no clamp)
 // ============================================================================
 
 #include <atomic>
@@ -61,52 +47,20 @@ static inline double sec_from(const timespec& t0,const timespec& t){
 }
 
 // ------------------------------------------------------------
-// SPSC ring buffer
+// Globals
 // ------------------------------------------------------------
-template <size_t N>
-struct SPSC {
-    static_assert((N&(N-1))==0,"N must be power of two");
-    struct Telemetry {
-        uint64_t seq;
-        double t_sched_sec,t_actual_sec;
-        int64_t jitter_ns;
-        double q_des_deg,dq_des_deg_s,tau_des_Nm;
-        double q_act_deg,dq_act_deg_s,temp_C;
-        int merror;
-        double ads_voltage;
-        double gait_phase;
-    };
-    Telemetry buf[N];
-    std::atomic<size_t> head{0},tail{0};
-    bool push(const Telemetry&s){
-        size_t h=head.load(std::memory_order_relaxed);
-        size_t t=tail.load(std::memory_order_acquire);
-        if(((h+1)&(N-1))==(t&(N-1)))return false;
-        buf[h&(N-1)]=s;
-        head.store(h+1,std::memory_order_release);
-        return true;
-    }
-    bool pop(Telemetry&out){
-        size_t t=tail.load(std::memory_order_relaxed);
-        size_t h=head.load(std::memory_order_acquire);
-        if(t==h)return false;
-        out=buf[t&(N-1)];
-        tail.store(t+1,std::memory_order_release);
-        return true;
-    }
-};
-
-constexpr size_t RING_SIZE=1u<<15;
-SPSC<RING_SIZE> q;
-std::atomic<uint64_t> dropped{0};
-volatile sig_atomic_t running=1;
-static void on_sigint(int){running=0;}
-
-std::atomic<float> g_latest_voltage{NAN};
+std::atomic<bool> running{true};
 std::atomic<bool> g_enable_motor{false};
+std::atomic<float> g_latest_voltage{NAN};
+
+// torque-profile parameters (updated by GUI)
+std::atomic<float> g_peak_torque{5.0f};
+std::atomic<float> g_rise_time{0.7f};
+std::atomic<float> g_peak_time{0.8f};
+std::atomic<float> g_fall_time{0.10f};
 
 // ------------------------------------------------------------
-// UDP Command Listener (no auto-disable)
+// UDP Command Listener (ENABLE/DISABLE + PARAM)
 // ------------------------------------------------------------
 void udp_command_listener(){
     int sock=socket(AF_INET,SOCK_DGRAM,0);
@@ -118,10 +72,9 @@ void udp_command_listener(){
     fcntl(sock,F_SETFL,O_NONBLOCK);
 
     std::cout<<"Listening for motor commands on port 5006...\n";
-
-    char buf[64];
+    char buf[128];
     sockaddr_in src{}; socklen_t slen=sizeof(src);
-    g_enable_motor.store(false); // start disabled
+    g_enable_motor.store(false);
 
     while(running){
         ssize_t n=recvfrom(sock,buf,sizeof(buf)-1,0,(sockaddr*)&src,&slen);
@@ -131,9 +84,22 @@ void udp_command_listener(){
             if(msg.find("ENABLE")!=std::string::npos){
                 g_enable_motor.store(true);
                 std::cout<<"[UDP CMD] ENABLE received\n";
-            } else if(msg.find("DISABLE")!=std::string::npos){
+            } 
+            else if(msg.find("DISABLE")!=std::string::npos){
                 g_enable_motor.store(false);
                 std::cout<<"[UDP CMD] DISABLE received\n";
+            } 
+            else if(msg.rfind("PARAM",0)==0){
+                float pt, rise, peak, fall;
+                if(sscanf(msg.c_str(),"PARAM %f %f %f %f",&pt,&rise,&peak,&fall)==4){
+                    g_peak_torque.store(pt);
+                    g_rise_time.store(rise);
+                    g_peak_time.store(peak);
+                    g_fall_time.store(fall);
+                    std::cout<<"[UDP CMD] Parameters updated: "
+                             <<"PeakTorque="<<pt<<", Rise="<<rise
+                             <<", Peak="<<peak<<", Fall="<<fall<<"\n";
+                }
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -197,22 +163,15 @@ void producer_rt(const RtArgs& A){
     double gait_phase=0.0;
     bool first_strike_detected=false;
 
-    const double peak_torque=5.0;
-    const double peak_time=0.8;
-    const double rise_time=0.7;
-    const double fall_time=0.10;
-    const double phi_start=rise_time;
-    const double phi_end=peak_time+fall_time;
-
     while(running){
         clock_nanosleep(CLOCK_MONOTONIC,TIMER_ABSTIME,&next,nullptr);
         timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
-
         double t_sched=(seq+1)*period_s;
         double t_actual=sec_from(t0,now);
         int64_t jitter=nsec_diff(now,nsec_add(t0,int64_t((seq+1)*period_ns)));
         float ads_v=g_latest_voltage.load(std::memory_order_relaxed);
 
+        // Heel-strike detection
         bool in_contact=(ads_v>fsr_thresh);
         if(in_contact && !was_in_contact){
             double t_now=sec_from(t0,now);
@@ -228,30 +187,38 @@ void producer_rt(const RtArgs& A){
                     if(prev_strides.size()>5) prev_strides.erase(prev_strides.begin());
                     double avg=0.0; for(double s:prev_strides) avg+=s; avg/=prev_strides.size();
                     default_stride=avg;
-                    std::cout<<"Stride detected: "<<stride_time<<" s (avg="<<avg<<")\n";
+                    std::cout<<"Stride: "<<stride_time<<" s (avg="<<avg<<")\n";
                 }
             }
         }
         was_in_contact=in_contact;
 
+        // gait phase calc
         if(first_strike_detected){
             double t_since_hs=sec_from(t0,now)-sec_from(t0,last_hs_time);
             gait_phase=t_since_hs/default_stride;
             if(gait_phase<0.0) gait_phase=0.0;
-            if(gait_phase>1.0) gait_phase=1.0;
+            else if(gait_phase>1.0) gait_phase=1.0;
         } else gait_phase=0.0;
 
+        // read latest parameters each cycle
+        double peak_torque=g_peak_torque.load();
+        double rise_time=g_rise_time.load();
+        double peak_time=g_peak_time.load();
+        double fall_time=g_fall_time.load();
+
+        // torque generation
         double tau_des=0.0;
         if(g_enable_motor.load()){
             double phi=gait_phase;
-            if(phi>=phi_start && phi<peak_time){
-                double ph=(phi-phi_start)/(peak_time-rise_time);
+            if(phi>=rise_time && phi<peak_time){
+                double ph=(phi-rise_time)/(peak_time-rise_time);
                 tau_des=peak_torque*0.5*(1.0-std::cos(M_PI*ph));
-            } else if(phi>=peak_time && phi<=phi_end){
+            } else if(phi>=peak_time && phi<=peak_time+fall_time){
                 double ph=(phi-peak_time)/fall_time;
                 tau_des=peak_torque*0.5*(1.0+std::cos(M_PI*ph));
             }
-        } else tau_des=0.0;
+        }
 
         cmd.mode=g_enable_motor.load()?mode_foc:mode_brake;
         cmd.kp=cmd.kd=0.0; cmd.q=cmd.dq=0.0;
@@ -266,24 +233,36 @@ void producer_rt(const RtArgs& A){
         double q_act_deg=((data.q-q0)/GR)*rad2deg;
         double dq_act_deg_s=((data.dq-dq0)/GR)*rad2deg;
 
-        float pkt[16]={0};
-        pkt[0]=float(t_sched); pkt[1]=float(t_actual); pkt[2]=float(jitter);
-        pkt[3]=float(tau_des); pkt[4]=float(q_act_deg); pkt[5]=float(dq_act_deg_s);
-        pkt[6]=ads_v; pkt[7]=float(gait_phase);
-        pkt[8]=float(rise_time); pkt[9]=float(peak_time); pkt[10]=float(fall_time);
-        for(size_t i=0;i<5;++i) pkt[11+i]=(i<prev_strides.size()?float(prev_strides[i]):0.0f);
+        // UDP packet
+        float pkt[17]={0};
+        pkt[0]=float(t_sched);
+        pkt[1]=float(t_actual);
+        pkt[2]=float(jitter);
+        pkt[3]=float(tau_des);
+        pkt[4]=float(q_act_deg);
+        pkt[5]=float(dq_act_deg_s);
+        pkt[6]=ads_v;
+        pkt[7]=float(gait_phase);
+        pkt[8]=float(peak_torque);
+        pkt[9]=float(rise_time);
+        pkt[10]=float(peak_time);
+        pkt[11]=float(fall_time);
+        for(size_t i=0;i<5;++i)
+            pkt[12+i]=(i<prev_strides.size()?float(prev_strides[i]):0.0f);
 
         sendto(A.udp_sock,pkt,sizeof(pkt),0,(sockaddr*)&A.udp_addr,sizeof(A.udp_addr));
-
         next=nsec_add(next,period_ns);
         ++seq;
     }
 }
 
 // ------------------------------------------------------------
+void sigint_handler(int){running=false;}
+
+// ------------------------------------------------------------
 int main(int argc,char**argv){
     const char* dev=(argc>=2)?argv[1]:"/dev/ttyUSB0";
-    std::signal(SIGINT,on_sigint);
+    signal(SIGINT,sigint_handler);
 
     // ADS1115 init
     ads1115_handle_t ads;
